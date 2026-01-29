@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "LearningTCP"
+name = "learning_tcp"
 version = "0.1.0"
