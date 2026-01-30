@@ -1,12 +1,20 @@
 use std::io::Read;
 use std::{io::Write, net::TcpStream};
 
+#[derive(Debug)]
 pub enum TcpRequest {
     Upload(String, Vec<u8>),
     Download(String),
 }
 
 impl TcpRequest {
+    pub fn filename(&self) -> &str {
+        match self {
+            TcpRequest::Upload(filename, _) => filename,
+            TcpRequest::Download(filename) => filename,
+        }
+    }
+
     pub fn encode_request(self, stream: &mut TcpStream) -> Result<(), std::io::Error> {
         match self {
             Self::Upload(file_name, file_data) => {

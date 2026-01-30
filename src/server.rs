@@ -1,10 +1,15 @@
-use std::io::Read;
+use learning_tcp::TcpRequest;
+use std::fs::create_dir_all;
+use std::fs::read;
+use std::fs::write;
 use std::net::TcpListener;
-use std::str::from_utf8;
+use std::net::TcpStream;
 
 fn main() {
     let address = "127.0.0.1:7878";
     let listener = TcpListener::bind(address).expect("failed to bind port");
+
+    create_dir_all("server_files").unwrap();
 
     println!("server started with address {address}");
 
@@ -12,12 +17,20 @@ fn main() {
         let mut connection = connection.expect("client request not accepted");
         println!("connection accepted");
 
-        let mut byte_buffer = [0u8; 512];
-        let bytes_read = connection
-            .read(&mut byte_buffer)
-            .expect("uh oh, failed to read message");
-        let message = from_utf8(&byte_buffer[..bytes_read]).expect("message was not utf-8");
+        let client_request =
+            TcpRequest::decode_request(&mut connection).expect("failed to decode request");
+        handle_request(client_request, &mut connection).unwrap();
+    }
+}
 
-        println!("client sent message: {message} ");
+fn handle_request(request: TcpRequest, stream: &mut TcpStream) -> Result<(), std::io::Error> {
+    let filepath = format!("server_files/{}", request.filename());
+
+    match request {
+        TcpRequest::Upload(_, data) => write(filepath, data),
+        TcpRequest::Download(filename) => {
+            let return_request = TcpRequest::Upload(filename, read(filepath).unwrap());
+            return_request.encode_request(stream)
+        }
     }
 }
